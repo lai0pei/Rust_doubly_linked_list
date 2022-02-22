@@ -107,7 +107,11 @@ impl<T> Cursor<'_, T> {
 impl<'a, T> Iterator for Iter<'a, T> {
     type Item = &'a T;
 
-    fn next(&mut self) -> Option<&'a T> {
-        unimplemented!()
+    fn next(&mut self) -> Option<Self::Item> {
+       return  if self.list.next.is_null() {
+                None
+        }else{
+            Some(self.list.data.unwrap_or(None).as_ref())
+        }
     }
 }
