@@ -4,6 +4,7 @@
 
 use std::ptr;
 use std::marker::PhantomData;
+use std::mem::take;
 
 pub struct LinkedList<T> {
     data: Option<T>,
@@ -100,7 +101,10 @@ impl<'a, T> Cursor<'a, T> {
     /// to the neighboring element that's closest to the back. This can be
     /// either the next or previous position.
     pub fn take(&mut self) -> Option<T> {
-        unimplemented!()
+        return match self.pos.is_null() {
+            true => None,
+            false => Some(self.pos.read().data.unwrap())
+        }
     }
 
     pub fn insert_after(&mut self, _element: T) {
