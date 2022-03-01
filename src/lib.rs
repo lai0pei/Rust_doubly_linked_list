@@ -6,20 +6,19 @@ use std::ptr;
 use std::marker::PhantomData;
 
 pub struct LinkedList<T> {
-    data: Option<Box<T>>,
+    data: Option<T>,
     next: *mut LinkedList<T>,
     previous: *mut LinkedList<T>,
-    len: usize,
 }
 
 pub struct Cursor<'a, T> {
     pos: *mut LinkedList<T>,
-    _marker : PhantomData<&'a T>
+    marker : PhantomData<&'a T>,
 }
 
-pub struct Iter<'a, T>{
-    list : &'a LinkedList<T>,
-    _marker : PhantomData<&'a T>,
+pub struct Iter<'a, T> {
+    list: &'a LinkedList<T>,
+    marker : PhantomData<&'a T>,
 }
 
 impl<T: Sized> LinkedList<T> {
@@ -28,7 +27,6 @@ impl<T: Sized> LinkedList<T> {
             data: None,
             next: ptr::null_mut(),
             previous: ptr::null_mut(),
-            len: usize::default(),
         }
     }
 
@@ -38,54 +36,64 @@ impl<T: Sized> LinkedList<T> {
     // whereas is_empty() is almost always cheap.
     // (Also ask yourself whether len() is expensive for LinkedList)
     pub fn is_empty(&self) -> bool {
-        return match self.data {
-            None => true,
-            Some(_) => false,
-        };
+        self.previous.is_null()
     }
 
-    pub fn len(&self) -> usize {
-        return if !Self::is_empty(self) { 0 } else { self.len };
+    pub unsafe fn len(&self) -> usize {
+        let mut count: usize = 0;
+        let mut node = self;
+        loop {
+            if node.next.is_null() {
+                break;
+            } else {
+                count += 1;
+                node = node.next.as_ref().unwrap();
+            }
+        }
+        count
     }
 
     /// Return a cursor positioned on the front element
-    pub fn cursor_front(&self) -> Cursor<'_, T> {
-        Cursor { pos: self.previous,_marker : PhantomData }
+    pub unsafe fn cursor_front(&self) -> Cursor<T> {
+        Cursor {
+            pos: self.previous.as_mut().unwrap(),
+            marker : PhantomData,
+        }
     }
 
-    /// Return a cursor positioned on the back element
-    pub fn cursor_back(&self) -> Cursor<T> {
-        Cursor { pos: self.next ,_marker : PhantomData}
+    /// Return a cursor positioned on the back   
+    pub unsafe fn cursor_back(&self) -> Cursor<T> {
+        Cursor {
+            pos: self.next.as_mut().unwrap(),
+            marker : PhantomData,
+        }
     }
 
     /// Return an iterator that moves from front to back
     pub fn iter(&self) -> Iter<'_, T> {
-        Iter{
-            list : self,
-            _marker : PhantomData
-        }
+        Iter { list: self }
     }
 }
 
 // the cursor is expected to act as if it is at the position of an element
 // and it also has to work with and be able to insert into an empty list.
-impl<T> Cursor<'_, T> {
+impl<'a, T> Cursor<'a, T> {
     /// Take a mutable reference to the current element
     pub fn peek_mut(&mut self) -> Option<&mut T> {
-        unimplemented!()
+        unsafe { self.pos.as_mut().unwrap().data.as_mut() }
     }
 
     /// Move one position forward (towards the back) and
     /// return a reference to the new position
     #[allow(clippy::should_implement_trait)]
     pub fn next(&mut self) -> Option<&mut T> {
-        unimplemented!()
+        self.next()
     }
 
     /// Move one position backward (towards the front) and
     /// return a reference to the new position
     pub fn prev(&mut self) -> Option<&mut T> {
-        unimplemented!()
+        unsafe{self.pos.as_mut().unwrap().previous.as_mut().unwrap().data.as_mut()}
     }
 
     /// Remove and return the element at the current position and move the cursor
@@ -104,14 +112,21 @@ impl<T> Cursor<'_, T> {
     }
 }
 
+
+impl<'a, T> Iterator for Cursor<'a, T>{
+    type Item = &'a mut T;
+
+    fn next(&mut self) -> Option<Self::Item> {
+      unsafe {
+        self.pos.as_mut().unwrap().data.as_mut()
+       } 
+    }
+}
+
 impl<'a, T> Iterator for Iter<'a, T> {
     type Item = &'a T;
 
     fn next(&mut self) -> Option<Self::Item> {
-       return  if self.list.next.is_null() {
-                None
-        }else{
-            Some(self.list.data.unwrap_or(None).as_ref())
-        }
+        self.next()
     }
 }

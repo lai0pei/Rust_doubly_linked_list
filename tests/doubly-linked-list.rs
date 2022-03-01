@@ -11,7 +11,6 @@ fn is_generic() {
 // ———————————————————————————————————————————————————————————
 
 #[test]
-#[ignore]
 fn basics_empty_list() {
     let list: LinkedList<i32> = LinkedList::new();
     assert_eq!(list.len(), 0);
@@ -20,7 +19,6 @@ fn basics_empty_list() {
 
 // push / pop at back ————————————————————————————————————————
 #[test]
-#[ignore]
 fn basics_single_element_back() {
     let mut list: LinkedList<i32> = LinkedList::new();
     list.push_back(5);
