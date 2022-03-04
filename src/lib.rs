@@ -4,7 +4,6 @@
 
 use std::ptr;
 use std::marker::PhantomData;
-use std::mem::take;
 
 pub struct LinkedList<T> {
     data: Option<T>,
@@ -37,7 +36,10 @@ impl<T: Sized> LinkedList<T> {
     // whereas is_empty() is almost always cheap.
     // (Also ask yourself whether len() is expensive for LinkedList)
     pub fn is_empty(&self) -> bool {
-        self.previous.is_null()
+        return match self.data{
+             None => true,
+             _ => false,
+        }
     }
 
     pub unsafe fn len(&self) -> usize {
@@ -72,7 +74,7 @@ impl<T: Sized> LinkedList<T> {
 
     /// Return an iterator that moves from front to back
     pub fn iter(&self) -> Iter<'_, T> {
-        Iter { list: self }
+        Iter { list: self , marker : PhantomData}
     }
 }
 
@@ -101,10 +103,18 @@ impl<'a, T> Cursor<'a, T> {
     /// to the neighboring element that's closest to the back. This can be
     /// either the next or previous position.
     pub fn take(&mut self) -> Option<T> {
-        return match self.pos.is_null() {
-            true => None,
-            false => Some(self.pos.read().data.unwrap())
-        }
+        let res = if self.pos.is_null() {
+            None
+        }else{
+            unsafe{
+                let current:LinkedList<T> = self.pos.read();
+                self.pos.as_ref().unwrap().previous.as_mut().unwrap().next = self.pos.as_ref().unwrap().next;
+                current.data
+            }
+        
+        };
+            
+        res
     }
 
     pub fn insert_after(&mut self, _element: T) {
